@@ -141,6 +141,17 @@ def despues_de_la_peticion(respuesta):
     @param respuesta Respuesta que Flask enviará al cliente.
     @return La misma respuesta.
     """
+    # VULN-08: cabeceras de seguridad en todas las respuestas (alertas de OWASP ZAP)
+    cab = respuesta.headers
+    cab["Content-Security-Policy"] = ("default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; "
+                                      "object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'")
+    cab["X-Frame-Options"] = "DENY"
+    cab["X-Content-Type-Options"] = "nosniff"
+    cab["Referrer-Policy"] = "no-referrer"
+    cab["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    cab["Cross-Origin-Opener-Policy"] = "same-origin"
+    cab["Cross-Origin-Resource-Policy"] = "same-origin"
+    cab["Cache-Control"] = "no-store"
     endpoint = request.url_rule.rule if request.url_rule else "desconocido"
     if endpoint != "/metrics":
         HTTP_PETICIONES.labels(request.method, endpoint, str(respuesta.status_code)).inc()
