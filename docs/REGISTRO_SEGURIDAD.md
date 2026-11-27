@@ -1,6 +1,6 @@
 # Registro de seguridad · Sistema Alumnos
 
-Estudiante: ____________________   Repositorio: https://github.com/israelcorderocordova1/Ev-3-Ciberseguridad-   Fecha: 2026-11-27
+Estudiante: ____________________    Repositorio: https://github.com/israelcorderocordova1/Ev-3-Ciberseguridad-   Fecha: 2026-11-27
 
 Cada fila se puede seguir hasta un **build de Jenkins** (job `SistemaAlumnos-DevSecOps`) y un **commit** (`VULN-xx`).
 
@@ -10,7 +10,7 @@ Cada fila se puede seguir hasta un **build de Jenkins** (job `SistemaAlumnos-Dev
 |---|---|---|---|---|
 | R0 | Desarrollo (antes del push, shift-left) | `scripts/revisar_local.sh` en el contenedor taller (pytest + Bandit + pip-audit) | local | Inicial: 9/9 pruebas OK, Bandit 2 High / 2 Medium / 1 Low, 19 CVE. Final: todo OK |
 | R1 | Código (SAST) | Bandit en la etapa *Security Review (SAST)* | #2 | 2 High / 2 Medium / 1 Low → #6: 0 / 0 / 0 |
-| R2 | Dependencias (SCA) | pip-audit en la etapa *Dependency Management* | #2 | 19 vulnerabilidades en 4 paquetes (Flask, Werkzeug, Jinja2, gunicorn) → #6: 0 |
+| R2 | Dependencias (SCA) | pip-audit en la etapa *Dependency Management* + Dependabot en GitHub | #2 | 19 vulnerabilidades en 4 paquetes (Flask, Werkzeug, Jinja2, gunicorn) → #7: 0; GitHub: 0 alertas abiertas, 20 cerradas |
 | R3 | Pruebas dinámicas (DAST) | OWASP ZAP 2.16.1 (spider + pasivo + activo) sobre staging | #2 | 3 High / 3 Medium / 1 Low → #6: 0 / 0 / 0 (solo informativas) |
 | R4 | Revisión manual | Lectura de `app.py` | — | CSRF, fuerza bruta, clave MD5 "admin", fuga de errores SQL, log injection |
 | R5 | Producción | Prometheus + Grafana (dashboard y 2 reglas de alerta) | #6 | Incidente simulado detectado y contenido (ver sección 4) |
@@ -28,7 +28,7 @@ Cada fila se puede seguir hasta un **build de Jenkins** (job `SistemaAlumnos-Dev
 | VULN-06 | Falta de token anti-CSRF (CWE-352) | ZAP "Absence of Anti-CSRF Tokens" | formulario `/login` | Medio | Token aleatorio en sesión + validación `hmac.compare_digest` | 443a5a4 | #3 |
 | VULN-07 | Sin límite de intentos de login (CWE-307) + log injection (CWE-117) | Manual, `simular_ataque.py` | `/login` | Medio | 5 fallos / 5 min por IP → HTTP 429, métrica `login_bloqueados_total`, logs con `%r` | bbc504e | #3 |
 | VULN-08 | Cabeceras de seguridad ausentes (CWE-693, CWE-1021) | ZAP CSP / Anti-clickjacking / X-Content-Type-Options | todas las respuestas | Medio | CSP, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy, COOP/CORP, no-store | e7bfb57 | #3 |
-| VULN-09 | Componentes con vulnerabilidades conocidas (CWE-1395) | pip-audit (19 CVE/PYSEC) | `requirements.txt` | Alto | Actualización a versiones sin CVE (ver sección 5) | 43b576b / e0a1f2c | #4, #6 |
+| VULN-09 | Componentes con vulnerabilidades conocidas (CWE-1395) | pip-audit (19 CVE/PYSEC), Dependabot | `requirements.txt` | Alto | Actualización a versiones sin CVE + PR #1–#6 de Dependabot (ver sección 5) | 43b576b / 56d576b | #6, #7 |
 | PIPE-01 | Gate del pipeline inefectivo | Revisión del build #3 (SUCCESS con 19 CVE) | `Jenkinsfile` etapa *Dependency Management* | Medio | Se elimina `| tee` (perdía el código de salida); demostrado en #5 (UNSTABLE, no despliega) | 30ecea3 | #5, #6 |
 
 ## 3. Resultados de OWASP ZAP
@@ -52,12 +52,12 @@ Ver Desarrollo EV3.docx, evidencias 8 y 9 (tabla con la hora, panel, clasificaci
 
 | Paquete | Versión inicial | Vulnerabilidades (IDs) | Versión final | Origen del cambio | ¿Pruebas, pip-audit y ZAP siguen OK? Build |
 |---|---|---|---|---|---|
-| Flask | 2.2.2 | PYSEC-2023-62, PYSEC-2026-2151 | 3.1.3 | Manual (VULN-09) / Dependabot | Sí: 9/9, 0 vuln, ZAP 0/0/0 – #6 |
-| Werkzeug | 2.2.2 | PYSEC-2023-57, -58, -221, PYSEC-2026-2043/2044/2045/2046/2320/3417/4312 | 3.1.9 | Manual (VULN-09) / Dependabot | Sí – #6 |
-| Jinja2 | 3.1.2 | PYSEC-2026-1471/1472/1473/1474/1475 | 3.1.6 | Manual (VULN-09) / Dependabot | Sí – #6 |
-| gunicorn | 21.2.0 | PYSEC-2026-1433, PYSEC-2026-1434 | 27.0.1 | Manual (VULN-09) / Dependabot | Sí – #6 |
-| prometheus-client | 0.17.1 | — (actualización preventiva) | 0.26.0 | Manual (VULN-09) / Dependabot | Sí – #6 |
-| pytest (dev) | 8.3.4 | — | 9.2.0 | Manual | Sí – #6 |
+| Flask | 2.2.2 | PYSEC-2023-62, PYSEC-2026-2151 | 3.1.3 | VULN-09 + PR #6 de Dependabot | Sí: 9/9, 0 vuln, ZAP 0/0/0 – #7 |
+| Werkzeug | 2.2.2 | PYSEC-2023-57, -58, -221, PYSEC-2026-2043/2044/2045/2046/2320/3417/4312 | 3.1.9 | VULN-09 + PR #4 de Dependabot | Sí – #7 |
+| Jinja2 | 3.1.2 | PYSEC-2026-1471/1472/1473/1474/1475 | 3.1.6 | VULN-09 + PR #5 de Dependabot | Sí – #7 |
+| gunicorn | 21.2.0 | PYSEC-2026-1433, PYSEC-2026-1434 | 27.0.1 | VULN-09 + PR #1 de Dependabot | Sí – #7 |
+| prometheus-client | 0.17.1 | — (actualización preventiva) | 0.26.0 | VULN-09 + PR #3 de Dependabot | Sí – #7 |
+| pytest (dev) | 8.3.4 | 1 alerta de Dependabot (tmpdir) | 9.2.0 | PR #2 de Dependabot | Sí – #7 |
 
 ## 6. Trazabilidad
 
@@ -65,5 +65,8 @@ Ver Desarrollo EV3.docx, evidencias 8 y 9 (tabla con la hora, panel, clasificaci
 |---|---|---|---|---|---|
 | Revisión de seguridad (Bandit) | B608 SQLi, B105, B324, B201, B104 | #2 | VULN-01, 03, 04, 05 | #3 | 1.0.3+e7bfb57 |
 | Prueba automatizada (OWASP ZAP) | 3 High / 3 Medium / 1 Low | #2 | VULN-01, 02, 06, 08 | #3 | 1.0.3+e7bfb57 |
-| Gestión de dependencias (pip-audit / Dependabot) | 19 CVE en 4 paquetes | #2, #5 | VULN-09 (rama `deps/vuln-09-actualizacion`, PR) | #4, #6 | 1.0.6+e0a1f2c |
-| Revisión del pipeline | PIPE-01 gate inefectivo | #3 | 30ecea3 | #5 (bloquea), #6 (verde) | 1.0.6+e0a1f2c |
+| Gestión de dependencias (pip-audit / Dependabot) | 19 CVE en 4 paquetes (20 alertas en GitHub) | #2, #5 | VULN-09 + PR #1–#6 de Dependabot | #7 | 1.0.7+56d576b |
+| Revisión del pipeline | PIPE-01 gate inefectivo | #3 | 30ecea3 | #5 (bloquea), #6 y #7 (verde) | 1.0.7+56d576b |
+
+Verificación final (build #7, commit 56d576b, después de fusionar los 6 PR de Dependabot): pruebas 9/9, Bandit 0/0/0,
+pip-audit 0 vulnerabilidades, ZAP 0/0/0, resultado SUCCESS, versión 1.0.7+56d576b en producción.
