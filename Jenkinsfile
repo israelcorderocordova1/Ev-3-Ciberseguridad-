@@ -71,7 +71,9 @@ pipeline {
                 // pip-audit: dependencias con CVE conocidos (SCA). Complementa a Dependabot en GitHub.
                 sh 'pip-audit -r requirements.txt -f json -o reports/pip-audit.json || true'
                 script {
-                    def rc = sh(returnStatus: true, script: 'pip-audit -r requirements.txt | tee reports/pip-audit.txt')
+                    // Sin tuberías: con "| tee" el código de salida de pip-audit se perdía y el gate no bloqueaba (build #3)
+                    def rc = sh(returnStatus: true, script: 'pip-audit -r requirements.txt > reports/pip-audit.txt 2>&1')
+                    sh 'cat reports/pip-audit.txt'
                     if (rc != 0) {
                         unstable('pip-audit encontró dependencias con vulnerabilidades conocidas')
                     }
