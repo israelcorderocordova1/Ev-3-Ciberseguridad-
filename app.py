@@ -12,7 +12,7 @@ import secrets
 import sqlite3
 import time
 
-from flask import Flask, Response, g, jsonify, render_template_string, request
+from flask import Flask, Response, g, jsonify, render_template_string, request, session
 from markupsafe import escape
 from werkzeug.security import check_password_hash
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
@@ -73,6 +73,7 @@ PORTADA = """<!doctype html>
 </form>
 <h2>Acceso administrador</h2>
 <form action="/login" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <input name="usuario" value="admin"> <input name="clave" type="password" value="">
   <button type="submit">Entrar</button>
 </form>
@@ -141,13 +142,33 @@ def despues_de_la_peticion(respuesta):
     return respuesta
 
 
+def generar_csrf():
+    """!
+    @brief Entrega el token anti-CSRF de la sesión (lo crea si no existe).
+    @return Token aleatorio de 64 caracteres hexadecimales.
+    """
+    if "csrf_token" not in session:
+        session["csrf_token"] = secrets.token_hex(32)
+    return session["csrf_token"]
+
+
+def csrf_valido():
+    """!
+    @brief VULN-06: verifica que el formulario traiga el mismo token anti-CSRF de la sesión.
+    @return True si el token es válido.
+    """
+    esperado = session.get("csrf_token", "")
+    recibido = request.form.get("csrf_token", "")
+    return bool(esperado) and hmac.compare_digest(esperado, recibido)
+
+
 @app.route("/")
 def portada():
     """!
     @brief Portada HTML con enlaces y formularios del sistema.
     @return Página HTML.
     """
-    return render_template_string(PORTADA, version=VERSION)
+    return render_template_string(PORTADA, version=VERSION, csrf_token=generar_csrf())
 
 
 @app.route("/hello")
@@ -224,6 +245,8 @@ def login():
     @brief Valida las credenciales del administrador enviadas por formulario.
     @return JSON con el resultado; 401 si las credenciales no son válidas.
     """
+    if not csrf_valido():
+        return jsonify({"error": "Token CSRF inválido"}), 400
     usuario = request.form.get("usuario", "")
     clave = request.form.get("clave", "")
     clave_ok = bool(ADMIN_CLAVE_HASH) and check_password_hash(ADMIN_CLAVE_HASH, clave)
