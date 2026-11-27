@@ -1,6 +1,6 @@
 # Registro de seguridad · Sistema Alumnos
 
-Estudiante: ____________________    Repositorio: https://github.com/israelcorderocordova1/Ev-3-Ciberseguridad-   Fecha: 2026-11-27
+Estudiante: Israel Cordero Cordova   Repositorio: https://github.com/israelcorderocordova1/Ev-3-Ciberseguridad-   Fecha: 2026-11-27
 
 Cada fila se puede seguir hasta un **build de Jenkins** (job `SistemaAlumnos-DevSecOps`) y un **commit** (`VULN-xx`).
 
