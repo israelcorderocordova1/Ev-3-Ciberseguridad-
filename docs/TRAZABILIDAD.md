@@ -11,3 +11,4 @@ Cada fila la agrega Jenkins al terminar un build (`scripts/trazabilidad.py`).
 | 4 | 2026-11-27 20:22 | 1.0.4+43b576b | `43b576b` | VULN-09: actualización de dependencias con CVE (Flask 3.1.3, Werkzeug  | 9/9 OK | 0/0/0 | 0 vuln. | 0/0/0 | SUCCESS | 1.0.4+43b576b |
 | 5 | 2026-11-27 20:23 | 1.0.5+30ecea3 | `30ecea3` | PIPE-01: el gate de pip-audit no detenía el build (código de salida pe | 9/9 OK | 0/0/0 | 19 vuln. | 0/0/0 | UNSTABLE | no desplegado |
 | 6 | 2026-11-27 20:24 | 1.0.6+e0a1f2c | `e0a1f2c` | PIPE-01: el gate de pip-audit no detenía el build (código de salida pe | 9/9 OK | 0/0/0 | 0 vuln. | 0/0/0 | SUCCESS | 1.0.6+e0a1f2c |
+| 7 | 2026-11-27 21:24 | 1.0.7+56d576b | `56d576b` | DEPS: merge PR de Dependabot gunicorn-27.0.1 | 9/9 OK | 0/0/0 | 0 vuln. | 0/0/0 | SUCCESS | 1.0.7+56d576b |
