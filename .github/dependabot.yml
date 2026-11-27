@@ -1,0 +1,15 @@
+# Dependabot: revisa semanalmente las dependencias de Python (pip) y abre PRs con las actualizaciones
+# de seguridad. Cada PR fusionado dispara un build en Jenkins (pollSCM) que vuelve a ejecutar
+# pruebas, Bandit, pip-audit y OWASP ZAP antes de llegar a producción.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "security"
+    commit-message:
+      prefix: "DEPS"
