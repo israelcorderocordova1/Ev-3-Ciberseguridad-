@@ -46,8 +46,14 @@ HTTP_LATENCIA = Histogram("http_request_duration_seconds", "Duración de las pet
 LOGIN_FALLIDOS = Counter("login_fallidos_total", "Intentos de inicio de sesión fallidos")
 LOGIN_EXITOSOS = Counter("login_exitosos_total", "Inicios de sesión correctos")
 SOSPECHOSAS = Counter("peticiones_sospechosas_total", "Peticiones con patrones de ataque", ["tipo"])
+LOGIN_BLOQUEADOS = Counter("login_bloqueados_total", "Logins rechazados por fuerza bruta (HTTP 429)")
 APP_INFO = Gauge("app_info", "Versión desplegada de la aplicación", ["version"])
 APP_INFO.labels(version=VERSION).set(1)
+
+## Límite contra fuerza bruta en /login (por IP).
+INTENTOS_MAX = int(os.environ.get("LOGIN_INTENTOS_MAX", "5"))
+VENTANA_S = int(os.environ.get("LOGIN_VENTANA_S", "300"))
+FALLOS_POR_IP = {}
 
 ## Patrones que delatan un intento de ataque (detección, no bloqueo).
 PATRONES_ATAQUE = {
@@ -247,6 +253,15 @@ def login():
     """
     if not csrf_valido():
         return jsonify({"error": "Token CSRF inválido"}), 400
+    ip = request.remote_addr or "?"
+    ahora = time.time()
+    # VULN-07: máximo INTENTOS_MAX fallos por IP en VENTANA_S segundos; luego HTTP 429
+    recientes = [t for t in FALLOS_POR_IP.get(ip, []) if ahora - t < VENTANA_S]
+    FALLOS_POR_IP[ip] = recientes
+    if len(recientes) >= INTENTOS_MAX:
+        LOGIN_BLOQUEADOS.inc()
+        app.logger.warning("Login bloqueado por exceso de intentos desde %s", ip)
+        return jsonify({"error": "Demasiados intentos, espera unos minutos"}), 429
     usuario = request.form.get("usuario", "")
     clave = request.form.get("clave", "")
     clave_ok = bool(ADMIN_CLAVE_HASH) and check_password_hash(ADMIN_CLAVE_HASH, clave)
@@ -254,7 +269,9 @@ def login():
         LOGIN_EXITOSOS.inc()
         return jsonify({"mensaje": "Bienvenido, administrador"})
     LOGIN_FALLIDOS.inc()
-    app.logger.warning("Login fallido para el usuario '%s' desde %s", usuario, request.remote_addr)
+    FALLOS_POR_IP[ip].append(ahora)
+    # Se registra el usuario saneado (repr, sin saltos de línea) para evitar inyección en los logs (CWE-117)
+    app.logger.warning("Login fallido para el usuario %r desde %s", usuario[:50], ip)
     return jsonify({"error": "Credenciales inválidas"}), 401
 
 
